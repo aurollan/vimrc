@@ -10,7 +10,10 @@ set smartindent
 "Non-expanded, 4-wide tabulations
 set tabstop=4
 set shiftwidth=4
-set noexpandtab
+" Previous
+" set noexpandtab
+" Actual
+set expandtab
 
 "Disable vi-compatibility
 set nocompatible
@@ -52,38 +55,50 @@ call vundle#begin()
 "let Vundle manage Vundle, required
 Plugin 'VundleVim/Vundle.vim'
 
-"NerdTree
+" NerdTree
 Plugin 'scrooloose/nerdtree'
 
-"Auto closing brackets
+" Auto closing brackets
 Plugin 'Raimondi/delimitMate'
 
-"git plugin in nerdtree
+" git plugin in nerdtree
 Plugin 'Xuyuanp/nerdtree-git-plugin'
 
-"Status bar
+" Status bar
 Plugin 'vim-airline/vim-airline'
 
-"gruvbox theme
+" gruvbox theme
 Plugin 'morhetz/gruvbox'
 
-"Linter
+" Linter
 Plugin 'dense-analysis/ale'
 
-"surrounding things
+" Display list of symbol
+Plugin 'preservim/tagbar'
+
+" Highlight yank
+Plugin 'machakann/vim-highlightedyank'
+
+" Tabularize text
+Plugin 'godlygeek/tabular'
+
+" surrounding things
 Plugin 'tpope/vim-surround'
 
-"Tags file management
+" Repeat works with plugin
+Plugin 'tpope/vim-repeat'
+
+" Tags file management
 Plugin 'ludovicchabant/vim-gutentags'
 
-" plugin on GitHub repo
+" plugin git manager
 Plugin 'tpope/vim-fugitive'
-
-" Tag with F8
-Plugin 'majutsushi/tagbar'
 
 " Plugin diff git
 Plugin 'airblade/vim-gitgutter'
+
+" rainbow brackets
+Plugin 'luochen1990/rainbow'
 
 " C syntax hightlight
 Plugin 'octol/vim-cpp-enhanced-highlight'
@@ -91,63 +106,68 @@ Plugin 'octol/vim-cpp-enhanced-highlight'
 " Markdown visual in browser
 Plugin 'suan/vim-instant-markdown', {'rtp': 'after'}
 
+" Echo function doc (don't know how to make it work yet
+" Plugin 'Shougo/echodoc.vim'
+
 call vundle#end()            " required
 filetype plugin indent on    " required
 "Vundle setup END
 
-"enable linter only on save
-let g:ale_lint_on_text_changed = 0
-let g:ale_lint_on_save = 1
+"enable ALE fixers
+let g:ale_fixers = {
+\   '*': ['remove_trailing_lines', 'trim_whitespace'],
+\}
+
+" enable ALE completion
+let g:ale_completion_enabled = 1
+" default compiler for linting is gcc, does NOT search for clang
+let g:ale_c_cc_executable = 'gcc'
+let g:ale_cpp_cc_executable = 'gcc'
+" Only enable following linter
+let g:ale_linters_explicit = 1
+let g:ale_linters = {
+\   'c': ['gcc', 'ccls'],
+\   'cpp': ['gcc', 'ccls']
+\}
+" ccls cache information in /tmp
+let g:ale_c_ccls_init_options = {
+\   'cache': {
+\       'directory': '/tmp/ccls/cache'
+\   }
+\ }
+
+" Open Nerd Panel with a new tab
+let sbv_open_nerdtree_with_new_tab=1
+let sbv_open_nerdtree_to_start=1
+" Leave NERDTree if it is last opened window
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+" Open NERDTree automatically when vim startup
+autocmd vimenter * NERDTree
+" Go to previous (last accessed) window at entry
+autocmd VimEnter * wincmd p
+" Open Nerdtree when vim startup up with no specified file
+autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
+
+" gutentags generate tag files in a specific repository
+let g:gutentags_cache_dir = expand('~/.cache/vim/ctags/')
+" Add extra information on tags
+" a: Access (or export) of class members
+" i: Inheritance information
+" l: Language of input file containing tag
+" m: Implementation information
+" n: Line number of tag definition
+" S: Signature of routine (e.g. prototype or parameter list)
+let g:gutentags_ctags_extra_args = [
+            \ '--fields=+ailmnS',
+            \ ]
+" Exclude following file pattern
+" let g:gutentags_ctags_exclude = [
+"             \ '*.git', '*.svg', '*.hg',
+"             \ '*.ccls*',
+"             \ ]
 
 "Set auto indenting
 set ai
-
-"Prevent backups when editing system files
-au BufWrite /private/tmp/crontab.* set nowritebackup
-au BufWrite /private/etc/pw.* set nowritebackup
-
-
-" Open NERDTree with vim
-let sbv_open_nerdtree_to_start=1
-" Open Nerd Panel with a new tab
-let sbv_open_nerdtree_with_new_tab=1
-
-" Launch nerdtree on current repository tapping 'vim'
-autocmd VimEnter * call s:actionForOpen(sbv_open_nerdtree_to_start)
-function! s:actionForOpen(openNerdTree)
-	let filename = expand('%:t')
-	if !empty(a:openNerdTree)
-		NERDTree
-	endif
-	if !empty(filename)
-		wincmd l
-	endif
-endfunction
-
-autocmd BufCreate * call s:addingNewTab(sbv_open_nerdtree_with_new_tab)
-function! s:addingNewTab(openNerdTree)
-	let filename = expand('%:t')
-	if winnr('$') < 2 && exists('t:NERDTreeBufName') == 0
-		if !empty(a:openNerdTree)
-			NERDTree
-		endif
-		if !empty(filename)
-			wincmd l
-		endif
-	endif
-endfunction
-
-autocmd WinEnter * call s:CloseIfOnlyNerdTreeLeft()
-function! s:CloseIfOnlyNerdTreeLeft()
-	if exists("t:NERDTreeBufName")
-		if bufwinnr(t:NERDTreeBufName) != -1
-			if winnr("$") == 1
-				q
-			endif
-		endif
-	endif
-endfunction
-
 " vplit on right of current buffer
 set splitright
 " vplit below current buffer
@@ -158,20 +178,35 @@ set splitbelow
 set path+=**
 " Diplay all matching files when we tab complete
 set wildmenu
-
 "Activate syntax color
 syntax on
+"Activate spell checking
+set spell
+"Color 81th charactere on a line
+highlight ColorColumn ctermbg=red
+call matchadd('ColorColumn', '\%81v', 100)
+
 "Set syntax color theme
 set bg=dark
 let g:gruvbox_contrast_dark='hard'
 colorscheme gruvbox
 
-autocmd BufReadPost fugitive://* set bufhidden=delete
-set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
+" Need comment to understand what it does
+" autocmd BufReadPost fugitive://* set bufhidden=delete
+" set statusline=%<%f\ %h%m%r%{fugitive#statusline()}%=%-14.(%l,%c%V%)\ %P
 
-"Color 81th charactere on a line
-highlight ColorColumn ctermbg=red
-call matchadd('ColorColumn', '\%81v', 100)
+" Toggle tagbar with F8 (Plugin)
+nmap <F8> :TagbarToggle<CR>
 
-"Activate spell checking
-set spell
+" Enable rainbow brackets (Plugin)
+let g:rainbow_active = 1
+
+ 
+" enable local .vimrc file
+" Used to setup specific command for ALE in .vimrc located in project
+" repository
+" exrc allows loading local executing local rc files.
+" secure disallows the use of :autocmd, shell and write commands in local 
+" .vimrc files.
+set exrc
+set secure
